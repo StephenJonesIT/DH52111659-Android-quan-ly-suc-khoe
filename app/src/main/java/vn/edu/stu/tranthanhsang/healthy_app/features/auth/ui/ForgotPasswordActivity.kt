@@ -48,37 +48,44 @@ class ForgotPasswordActivity : AppCompatActivity() {
         forgotPasswordViewModel.forgotPasswordUiState.observe(this) {
             when(it){
                 is ForgotPasswordUiState.Initial -> {
-                    binding.progressBar.hide()
-                    binding.btnSendOtp.isEnabled = true
+                   stopLoading()
                 }
                 is ForgotPasswordUiState.Loading -> {
-                    binding.progressBar.show()
-                    binding.btnSendOtp.disable()
-                    binding.edtEmail.disable()
-                    binding.darkOverlay.show()
+                    isLoading()
                 }
                 is ForgotPasswordUiState.Success<*> ->{
-                    binding.progressBar.hide()
-                    binding.btnSendOtp.enable()
-                    binding.edtEmail.enable()
-                    binding.darkOverlay.hide()
+                    stopLoading()
                     forgotPasswordViewModel.resetState()
                     ToastUtils.showToast(this, it.data.toString())
-                    val intent = Intent(this, VerifyOTPActivity::class.java)
-                    intent.putExtra(Constants.EMAIL, forgotPasswordViewModel.emailResponse.value)
-                    intent.putExtra(Constants.VERIFY_TYPE, Constants.RESET_PASSWORD)
-                    startActivity(intent)
-                    applyTransition()
+                    navigateToVerifyOTP()
                 }
                 is ForgotPasswordUiState.Error -> {
-                    binding.progressBar.hide()
-                    binding.edtEmail.enable()
-                    binding.btnSendOtp.enable()
-                    binding.darkOverlay.hide()
+                    stopLoading()
                     it.message?.let { it1 -> ToastUtils.showToast(this, it1) }
                     forgotPasswordViewModel.resetState()
                 }
             }
         }
+    }
+    private fun isLoading(){
+        binding.progressBar.show()
+        binding.btnSendOtp.disable()
+        binding.edtEmail.disable()
+        binding.darkOverlay.show()
+    }
+
+    private fun stopLoading(){
+        binding.progressBar.hide()
+        binding.btnSendOtp.isEnabled = true
+        binding.edtEmail.enable()
+        binding.darkOverlay.hide()
+    }
+
+    private fun navigateToVerifyOTP(){
+        val intent = Intent(this, VerifyOTPActivity::class.java)
+        intent.putExtra(Constants.EMAIL, forgotPasswordViewModel.emailResponse.value)
+        intent.putExtra(Constants.VERIFY_TYPE, Constants.RESET_PASSWORD)
+        startActivity(intent)
+        applyTransition()
     }
 }

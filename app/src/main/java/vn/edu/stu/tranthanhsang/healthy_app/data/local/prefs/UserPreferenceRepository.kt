@@ -18,6 +18,16 @@ class UserPreferenceRepository @Inject constructor(
         val ROLE = stringPreferencesKey("role")
         val ACCESS_TOKEN = stringPreferencesKey("access_token")
         val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
+        val EMAIL = stringPreferencesKey("email")
+    }
+    suspend fun saveEmail(email: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.EMAIL] = email
+        }
+    }
+
+    val email: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.EMAIL]
     }
 
     suspend fun saveUserSession(userId: String, role: String, accessToken: String, refreshToken: String) {

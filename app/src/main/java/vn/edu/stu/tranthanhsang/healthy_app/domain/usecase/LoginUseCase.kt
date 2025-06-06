@@ -2,6 +2,7 @@ package vn.edu.stu.tranthanhsang.healthy_app.domain.usecase
 
 import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.LoginResponse
 import vn.edu.stu.tranthanhsang.healthy_app.domain.repositories.AuthRepository
+import vn.edu.stu.tranthanhsang.healthy_app.domain.models.LoginError
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.utils.isValidEmail
 import javax.inject.Inject
@@ -10,22 +11,28 @@ class LoginUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
     suspend operator fun invoke(username: String, password: String): Result<LoginResponse> {
-        if (username.isBlank() || password.isBlank()) {
-            return Result.Error(IllegalArgumentException("Username and password cannot be empty"))
+        if (username.trim().isEmpty()) {
+            return Result.Error(LoginError.EmptyFieldsEmail)
         }
 
+        if (password.trim().isEmpty()){
+            return Result.Error(LoginError.EmptyFieldsPassword)
+        }
         if (!isValidEmail(username)) {
-            return Result.Error(IllegalArgumentException("Invalid email format"))
+            return Result.Error(LoginError.InvalidEmail)
         }
 
         if (password.length < 8) {
-            return Result.Error(IllegalArgumentException("Password must be at least 8 characters long"))
+            return Result.Error(LoginError.WeakPassword)
         }
 
         val result = authRepository.login(username, password)
         return when (result) {
             is Result.Success -> Result.Success(result.data)
-            is Result.Error -> Result.Error(result.exception, result.message ?: "Đăng nhập thất bại. Vui lòng thử lại.")
+            is Result.Error -> Result.Error(
+                LoginError.ServerError(
+                result.exception as Throwable,
+                result.message ?: "Đăng nhập thất bại. Vui lòng thử lại."))
             Result.Loading -> Result.Loading
         }
     }

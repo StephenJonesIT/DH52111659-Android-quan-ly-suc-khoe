@@ -37,6 +37,8 @@ android {
     }
 
     buildFeatures {
+        //noinspection DataBindingWithoutKapt
+        dataBinding = true
         viewBinding = true
     }
 }
@@ -73,6 +75,9 @@ dependencies {
 
     // DataStore Preferences
     implementation (libs.androidx.datastore.preferences)
+
+    //Fragment
+    implementation (libs.androidx.fragment.ktx)
 
     //Tests
     testImplementation(libs.junit)

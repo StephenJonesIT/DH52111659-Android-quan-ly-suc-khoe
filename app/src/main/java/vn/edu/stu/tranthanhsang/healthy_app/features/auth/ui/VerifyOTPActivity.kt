@@ -68,6 +68,11 @@ class VerifyOTPActivity : AppCompatActivity() {
         verifyType.let {
             viewModel.isForgotPassword.value = verifyType == Constants.RESET_PASSWORD
         }
+
+        val password = intent.getStringExtra(Constants.PASSWORD)?:""
+        password.let {
+            viewModel.setPassword(it)
+        }
     }
 
 

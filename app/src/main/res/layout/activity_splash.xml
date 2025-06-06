@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/drawable_splashscreen" tools:context=".presentation.ui.splash.SplashActivity">
+    android:background="@drawable/drawable_splashscreen" tools:context=".common.ui.splash.SplashActivity">
   <androidx.cardview.widget.CardView
       android:layout_width="120dp"
       android:layout_height="120dp"

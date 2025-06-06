@@ -1,5 +1,7 @@
 package vn.edu.stu.tranthanhsang.healthy_app.features.auth.ui
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -11,10 +13,14 @@ import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import vn.edu.stu.tranthanhsang.healthy_app.MainActivity
 import vn.edu.stu.tranthanhsang.healthy_app.databinding.FragmentLoginBinding
+import vn.edu.stu.tranthanhsang.healthy_app.features.admin.ui.AdminDashBoardActivity
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.LoginUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.viewmodels.AuthViewModel
+import vn.edu.stu.tranthanhsang.healthy_app.features.expert.ui.ExpertDashboardActivity
 import vn.edu.stu.tranthanhsang.healthy_app.utils.ToastUtils
 import vn.edu.stu.tranthanhsang.healthy_app.utils.applyTransition
+import vn.edu.stu.tranthanhsang.healthy_app.utils.disable
+import vn.edu.stu.tranthanhsang.healthy_app.utils.enable
 import vn.edu.stu.tranthanhsang.healthy_app.utils.hide
 import vn.edu.stu.tranthanhsang.healthy_app.utils.show
 
@@ -72,27 +78,19 @@ class LoginFragment : Fragment() {
         authViewModel.authState.observe(viewLifecycleOwner){ state ->
             when(state) {
                 LoginUiState.Initial -> {
-                    binding.progressBar.hide()
-                    binding.btnLogin.isEnabled = true
+                    stopLoading()
                 }
                 is LoginUiState.Loading -> {
-                    binding.progressBar.show()
-                    binding.btnLogin.isEnabled = false
+                    isLoading()
                 }
                 is LoginUiState.Success<*> -> {
-                    binding.progressBar.hide()
-                    binding.btnLogin.isEnabled = true
+                    stopLoading()
                     authViewModel.resetLoginState()
                     Log.d("LOGIN", "observeData: ${state.data}")
-                    ToastUtils.showToast(requireContext(), "Đăng nhập thành công")
-                    val intent = Intent(requireContext(), MainActivity::class.java)
-                    startActivity(intent)
-                    requireActivity().applyTransition()
-                    requireActivity().finish()
+                    authViewModel.roleUser.value?.let { navigateToDashboard(it, requireContext(), requireActivity()) }
                 }
                 is LoginUiState.Error -> {
-                    binding.progressBar.hide()
-                    binding.btnLogin.isEnabled = true
+                    stopLoading()
                     state.message?.let { ToastUtils.showToast(requireContext(), it) }
                     authViewModel.resetLoginState()
                 }
@@ -105,5 +103,37 @@ class LoginFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun navigateToDashboard(role: String, context:Context, activity:Activity) {
+        ToastUtils.showToast(context, "Đăng nhập thành công")
+        val intent = when(role){
+            "admin"-> Intent(requireContext(), AdminDashBoardActivity::class.java)
+            "expert" -> Intent(requireContext(), ExpertDashboardActivity::class.java)
+            "user" -> Intent(requireContext(), MainActivity::class.java)
+            else -> null
+        }
+
+        intent?.let {
+            context.startActivity(it)
+            activity.applyTransition()
+            activity.finish()
+        }
+    }
+
+    private fun isLoading(){
+        binding.darkOverlay.show()
+        binding.progressBar.show()
+        binding.btnLogin.disable()
+        binding.edtUsername.disable()
+        binding.edtPassword.disable()
+    }
+
+    private fun stopLoading(){
+        binding.progressBar.hide()
+        binding.btnLogin.enable()
+        binding.darkOverlay.hide()
+        binding.edtUsername.enable()
+        binding.edtPassword.enable()
     }
 }

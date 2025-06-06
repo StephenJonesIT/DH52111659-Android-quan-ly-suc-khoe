@@ -16,6 +16,7 @@ import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.VerifyOtpUseCase
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.SendOtpUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.VerifyOtpUiState
+import vn.edu.stu.tranthanhsang.healthy_app.utils.SingleLiveEvent
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,8 +24,13 @@ class VerifyOTPViewModel @Inject constructor(
     private val verifyEmailUseCase: VerifyEmailUseCase,
     private val userPreferenceRepository: UserPreferenceRepository,
     private val forgotPasswordUseCase: ForgotPasswordUseCase,
-    private val verifyOtoUseCase: VerifyOtpUseCase
+    private val verifyOtpUseCase: VerifyOtpUseCase
 ):ViewModel() {
+    private var _navigateToLogin = SingleLiveEvent<Pair<String, String>>()
+    val navigateToLogin: LiveData<Pair<String, String>> get() = _navigateToLogin
+
+    var password: String = ""
+
     val isForgotPassword: MutableLiveData<Boolean> = MutableLiveData(false)
 
     private val _authStatus = MutableLiveData<VerifyOtpUiState>()
@@ -57,6 +63,10 @@ class VerifyOTPViewModel @Inject constructor(
         }
     }
 
+    fun setPassword(password: String){
+        this.password = password
+    }
+
     fun setEmailFromIntent(email: String){
         emailSend.value = email
     }
@@ -75,6 +85,9 @@ class VerifyOTPViewModel @Inject constructor(
             if (!isForgotPassword.value!!){
                 when (val result = verifyEmailUseCase(email, otp)){
                     is Result.Success -> {
+                        if(!isForgotPassword.value!!){
+                            _navigateToLogin.value = Pair(email, password)
+                        }
                         _authStatus.value = VerifyOtpUiState.Success(result.data.message)
                     }
                     is Result.Error -> {
@@ -83,7 +96,7 @@ class VerifyOTPViewModel @Inject constructor(
                     Result.Loading -> VerifyOtpUiState.Loading
                 }
             }else {
-                    when(val result = verifyOtoUseCase(email, otp)){
+                    when(val result = verifyOtpUseCase(email, otp)){
                         is Result.Success -> {
                             _authStatus.value = VerifyOtpUiState.Success(result.data.message)
                         }

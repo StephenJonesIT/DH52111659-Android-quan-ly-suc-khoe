@@ -20,6 +20,8 @@ class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase
 ) : ViewModel() {
+    val roleUser: MutableLiveData<String> = MutableLiveData()
+
     private val _authStatus = MutableLiveData<LoginUiState>()
     val authState: LiveData<LoginUiState> = _authStatus
 
@@ -43,6 +45,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             when(val result = loginUseCase(username, password)){
                 is Result.Success -> {
+                    roleUser.value = result.data.role
                     _authStatus.value = LoginUiState.Success(result.data)
                 }
                 is Result.Error -> {
