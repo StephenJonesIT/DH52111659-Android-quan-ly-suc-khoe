@@ -1,10 +1,10 @@
 package vn.edu.stu.tranthanhsang.healthy_app.domain.repositories
 
-import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.LoginResponse
-import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.RegisterResponse
-import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.SendOTPResponse
-import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.UpdatePasswordResponse
-import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.VerifyEmailResponse
+import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.auth.LoginResponse
+import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.auth.RegisterResponse
+import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.auth.SendOTPResponse
+import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.auth.UpdatePasswordResponse
+import vn.edu.stu.tranthanhsang.healthy_app.data.remote.models.auth.VerifyEmailResponse
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 
 interface AuthRepository {

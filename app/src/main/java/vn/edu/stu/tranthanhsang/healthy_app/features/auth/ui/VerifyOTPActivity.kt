@@ -9,27 +9,31 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import dagger.hilt.android.AndroidEntryPoint // Đảm bảo đã import
-import kotlinx.coroutines.runBlocking
-import vn.edu.stu.tranthanhsang.healthy_app.MainActivity
 import vn.edu.stu.tranthanhsang.healthy_app.R
 import vn.edu.stu.tranthanhsang.healthy_app.databinding.ActivityVerifyTokenBinding
+import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.LoginUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.SendOtpUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.VerifyOtpUiState
+import vn.edu.stu.tranthanhsang.healthy_app.features.auth.viewmodels.AuthViewModel
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.viewmodels.VerifyOTPViewModel
+import vn.edu.stu.tranthanhsang.healthy_app.features.user.ui.setup_frofile.SetupProfileActivity
 import vn.edu.stu.tranthanhsang.healthy_app.utils.Constants
 import vn.edu.stu.tranthanhsang.healthy_app.utils.ToastUtils
+import vn.edu.stu.tranthanhsang.healthy_app.utils.disable
+import vn.edu.stu.tranthanhsang.healthy_app.utils.enable
 import vn.edu.stu.tranthanhsang.healthy_app.utils.hide
 import vn.edu.stu.tranthanhsang.healthy_app.utils.show
 
 @AndroidEntryPoint // Đảm bảo annotation này có mặt nếu bạn dùng Hilt
 class VerifyOTPActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVerifyTokenBinding
-    private val viewModel: VerifyOTPViewModel by viewModels()
+    private val verifyOtpViewModel: VerifyOTPViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+
     private lateinit var editTexts: List<EditText> // Khai báo list EditText ở đây
 
     private lateinit var email: String
@@ -38,7 +42,7 @@ class VerifyOTPActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_verify_token)
-        binding.verifyTokenViewModel = viewModel // Đảm bảo tên biến trong layout khớp
+        binding.verifyTokenViewModel = verifyOtpViewModel // Đảm bảo tên biến trong layout khớp
         binding.lifecycleOwner = this
 
         // Khởi tạo list editTexts sau khi binding đã được thiết lập
@@ -60,18 +64,19 @@ class VerifyOTPActivity : AppCompatActivity() {
         val intent = getIntent()
         email = intent.getStringExtra(Constants.EMAIL)?:""
         email.let {
-            viewModel.setEmailFromIntent(it)
+            verifyOtpViewModel.setEmailFromIntent(it)
             Log.d("EMAIL", it)
         }
 
         verifyType = intent.getStringExtra(Constants.VERIFY_TYPE)?:""
         verifyType.let {
-            viewModel.isForgotPassword.value = verifyType == Constants.RESET_PASSWORD
+            verifyOtpViewModel.isForgotPassword.value = verifyType == Constants.RESET_PASSWORD
         }
 
         val password = intent.getStringExtra(Constants.PASSWORD)?:""
         password.let {
-            viewModel.setPassword(it)
+            Log.d("PASSWORD", it)
+            verifyOtpViewModel.updatePassword(it)
         }
     }
 
@@ -83,7 +88,7 @@ class VerifyOTPActivity : AppCompatActivity() {
     }
 
     private fun observeData() {
-        viewModel.authState.observe(this){ state ->
+        verifyOtpViewModel.authState.observe(this){ state ->
             when(state){
                 VerifyOtpUiState.Initial -> {
                     binding.progressBar.hide()
@@ -97,11 +102,10 @@ class VerifyOTPActivity : AppCompatActivity() {
                 is VerifyOtpUiState.Success<*> -> {
                     binding.progressBar.hide()
                     binding.btnVerify.isEnabled = true
-                    viewModel.resetState()
+                    verifyOtpViewModel.resetState()
                     ToastUtils.showToast(this, state.data.toString())
-                    if (!viewModel.isForgotPassword.value!!){
-                        startActivity(Intent(this,MainActivity::class.java))
-                        finish()
+                    if (!verifyOtpViewModel.isForgotPassword.value!!){
+                        // Xử lý sao khi verify email thành công
                     }else{
                         val intent = Intent(this, ResetPasswordActivity::class.java)
                         intent.putExtra(Constants.EMAIL, email)
@@ -112,15 +116,40 @@ class VerifyOTPActivity : AppCompatActivity() {
                 is VerifyOtpUiState.Error -> {
                     binding.progressBar.hide()
                     binding.btnVerify.isEnabled = true
-                    state.message?.let { ToastUtils.showToast(this, it) }
-                    viewModel.resetState()
+                    state.message?.let { ToastUtils.showToast(this, state.message) }
+                    verifyOtpViewModel.resetState()
                 }
                 else ->{}
             }
         }
+        verifyOtpViewModel.navigateToLogin.observeForever { state ->
+            val email = state.first
+            val password = state.second
+            authViewModel.login(email, password)
+        }
 
+        authViewModel.authState.observe(this) { state ->
+            when(state){
+                is LoginUiState.Initial -> {
+                    stopLoading()
+                }
+                is LoginUiState.Loading -> {
+                    isLoading()
+                }
+                is LoginUiState.Success<*> -> {
+                    stopLoading()
+                    startActivity(Intent(this, SetupProfileActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    })
+                }
+                is LoginUiState.Error -> {
+                    stopLoading()
+                    state.message?.let { ToastUtils.showToast(this, state.message) }
+                }
+            }
+        }
 
-        viewModel.sendOtpState.observe(this) {
+        verifyOtpViewModel.sendOtpState.observe(this) {
             when (it) {
                 SendOtpUiState.Initial -> {
                     binding.progressBar.hide()
@@ -134,16 +163,16 @@ class VerifyOTPActivity : AppCompatActivity() {
                 }
                 is SendOtpUiState.Error -> {
                     binding.progressBar.hide()
-                    it.message?.let { it1 -> ToastUtils.showToast(this, it1) }
-                }                }
-
+                    it.message?.let { it1 -> ToastUtils.showToast(this, it.message) }
+                }
+            }
         }
     }
 
     private fun setOtpInputListeners() { // Đổi tên hàm
         editTexts.forEachIndexed { index, editText ->
             // Truyền ViewModel vào OtpTextWatcher
-            editText.addTextChangedListener(OtpTextWatcher(editText, index, editTexts, viewModel))
+            editText.addTextChangedListener(OtpTextWatcher(editText, index, editTexts, verifyOtpViewModel))
 
             // Xử lý sự kiện nhấn phím Backspace (DEL)
             editText.setOnKeyListener { v, keyCode, event ->
@@ -153,7 +182,7 @@ class VerifyOTPActivity : AppCompatActivity() {
                             editTexts[index - 1].requestFocus()
                             editTexts[index - 1].text?.clear()
                             // RẤT QUAN TRỌNG: Cập nhật ViewModel khi xóa ký tự ở ô trước đó
-                            viewModel.updateOtpDigit(index - 1, "")
+                            verifyOtpViewModel.updateOtpDigit(index - 1, "")
                         }
                         return@setOnKeyListener true // Đã xử lý sự kiện
                     }
@@ -213,8 +242,16 @@ class VerifyOTPActivity : AppCompatActivity() {
 
     fun onResendOtpClicked(view: android.view.View) {
         // Thực hiện logic gửi lại OTP
-        viewModel.resetOtp() // Reset các ô OTP trong ViewModel
+        verifyOtpViewModel.resetOtp() // Reset các ô OTP trong ViewModel
         editTexts[0].requestFocus() // Chuyển focus về ô đầu tiên
-        ToastUtils.showToast(this, "Đã gửi lại OTP!")
+        ToastUtils.showToast(this, "Resend otp")
+    }
+    private fun isLoading(){
+        binding.progressBar.show()
+        binding.btnVerify.disable()
+    }
+    private fun stopLoading(){
+        binding.progressBar.hide()
+        binding.btnVerify.enable()
     }
 }

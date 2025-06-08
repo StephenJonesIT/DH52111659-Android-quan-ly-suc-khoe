@@ -1,6 +1,12 @@
 <resources>
     <string name="app_name">App Healthy Management</string>
     <string name="continues">Continue</string>
-    <!-- TODO: Remove or change this placeholder text -->
+
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="error_name_length">Name must be longer than 3 characters</string>
+    <string name="error_year_length">Invalid year of birth</string>
+    <string name="error_year_old">You must be over 18 years old</string>"
+    <string name="error_height_length">Invalid height</string>
+    <string name="error_weight_length">Invalid weight</string>
+    <string name="error_gender">Please select a gender</string>
 </resources>

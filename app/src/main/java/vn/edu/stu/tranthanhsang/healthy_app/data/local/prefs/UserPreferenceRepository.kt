@@ -26,6 +26,12 @@ class UserPreferenceRepository @Inject constructor(
         }
     }
 
+    suspend fun saveNewAccessToken(newToken: String){
+        dataStore.edit { references ->
+            references[PreferencesKeys.ACCESS_TOKEN] = newToken
+        }
+    }
+
     val email: Flow<String?> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.EMAIL]
     }

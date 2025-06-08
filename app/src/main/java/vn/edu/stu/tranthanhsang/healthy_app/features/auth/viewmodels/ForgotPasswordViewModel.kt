@@ -5,9 +5,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import vn.edu.stu.tranthanhsang.healthy_app.domain.models.ForgotPasswordError
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.ForgotPasswordUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.ForgotPasswordUseCase
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.ForgotPasswordUiState
 import javax.inject.Inject
@@ -35,26 +36,26 @@ class ForgotPasswordViewModel @Inject constructor(
 
     fun forgotPassword(email: String) {
         _forgotPasswordUiState.value = ForgotPasswordUiState.Initial
-        viewModelScope.launch {
-            _forgotPasswordUiState.value = ForgotPasswordUiState.Loading
-            when(val result = forgotPasswordUseCase(email)){
+        viewModelScope.launch(Dispatchers.IO) {
+            _forgotPasswordUiState.postValue(ForgotPasswordUiState.Loading)
+            val uiState = when(val result = forgotPasswordUseCase(email)) {
                 is Result.Success -> {
-                    _emailResponse.value = result.data.email
-                    _forgotPasswordUiState.value = ForgotPasswordUiState.Success(result.data.message)
+                    _emailResponse.postValue(result.data.email)
+                    ForgotPasswordUiState.Success(result.data.message)
                 }
+
                 is Result.Error -> {
-                    when(val error = result.exception) {
-                        is ForgotPasswordError.EmptyFieldsEmail -> _emailError.value= error.message
-                        is ForgotPasswordError.InvalidEmail -> _emailError.value = error.message
-                        is ForgotPasswordError.ServerError -> _emailError.value = error.message
-                        else -> _emailError.value = "Lỗi không xác định"
+                    when (val error = result.exception) {
+                        is ForgotPasswordError.EmptyFieldsEmail -> _emailError.postValue(error.message)
+                        is ForgotPasswordError.InvalidEmail -> _emailError.postValue(error.message)
+                        is ForgotPasswordError.ServerError -> _emailError.postValue(error.message)
+                        else -> _emailError.postValue("Lỗi không xác định")
                     }
-                    _forgotPasswordUiState.value = ForgotPasswordUiState.Error(result.message)
+                    ForgotPasswordUiState.Error(result.message)
                 }
-                is Result.Loading -> {
-                    _forgotPasswordUiState.value = ForgotPasswordUiState.Loading
-                }
+                is Result.Loading -> ForgotPasswordUiState.Loading
             }
+            _forgotPasswordUiState.postValue(uiState)
         }
     }
 }

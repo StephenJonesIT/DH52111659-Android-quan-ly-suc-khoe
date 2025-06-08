@@ -61,7 +61,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
                 }
                 is ForgotPasswordUiState.Error -> {
                     stopLoading()
-                    it.message?.let { it1 -> ToastUtils.showToast(this, it1) }
+                    it.message?.let { it1 -> ToastUtils.showToast(this, it.message) }
                     forgotPasswordViewModel.resetState()
                 }
             }

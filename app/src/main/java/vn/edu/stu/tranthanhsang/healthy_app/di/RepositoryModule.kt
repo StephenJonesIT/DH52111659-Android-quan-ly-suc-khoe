@@ -7,7 +7,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import vn.edu.stu.tranthanhsang.healthy_app.data.repositories.AuthRepositoryImpl
+import vn.edu.stu.tranthanhsang.healthy_app.data.repositories.ProfileRepositoryImpl
 import vn.edu.stu.tranthanhsang.healthy_app.domain.repositories.AuthRepository
+import vn.edu.stu.tranthanhsang.healthy_app.domain.repositories.ProfileRepository
 
 
 @Module
@@ -19,4 +21,11 @@ abstract class RepositoryModule { // PHẢI LÀ abstract class
     abstract fun bindAuthRepository(
         authRepositoryImpl: AuthRepositoryImpl // Hilt sẽ tự động cung cấp AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileRepository(
+        profileRepositoryImpl: ProfileRepositoryImpl
+    ): ProfileRepository
 }
+

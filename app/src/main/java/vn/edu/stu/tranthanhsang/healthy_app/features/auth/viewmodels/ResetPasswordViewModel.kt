@@ -5,9 +5,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import vn.edu.stu.tranthanhsang.healthy_app.domain.models.ResetPasswordError
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.ResetPasswordUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.ResetPasswordUseCase
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.ResetPasswordUiState
 import javax.inject.Inject
@@ -36,22 +37,21 @@ class ResetPasswordViewModel @Inject constructor(
 
     fun resetPassword(email: String, password: String, confirmPassword: String) {
         _resetPasswordUiState.value = ResetPasswordUiState.Initial
-        viewModelScope.launch {
-            _resetPasswordUiState.value = ResetPasswordUiState.Loading
-            when(val result = resetPasswordUseCase(email, password, confirmPassword)){
-                is Result.Success -> {
-                    _resetPasswordUiState.value = ResetPasswordUiState.Success(result.data.message)
-                }
+        viewModelScope.launch(Dispatchers.IO) {
+            _resetPasswordUiState.postValue(ResetPasswordUiState.Loading)
+            val uiState = when(val result = resetPasswordUseCase(email, password, confirmPassword)){
+                is Result.Success ->  ResetPasswordUiState.Success(result.data.message)
                 is Result.Error -> {
-                    when(val error = result.exception) {
-                        is ResetPasswordError.EmptyPassword -> _passwordError.value = error.message
-                        is ResetPasswordError.PasswordLengthError -> _passwordError.value = error.message
-                        is ResetPasswordError.PasswordNotMatch -> _confirmPasswordError.value = error.message
-                    }
-                    _resetPasswordUiState.value = ResetPasswordUiState.Error(result.message)
+                        when(val error = result.exception) {
+                            is ResetPasswordError.EmptyPassword -> _passwordError.postValue(error.message)
+                            is ResetPasswordError.PasswordLengthError -> _passwordError.postValue(error.message)
+                            is ResetPasswordError.PasswordNotMatch -> _confirmPasswordError.postValue(error.message)
+                        }
+                        ResetPasswordUiState.Error(result.message)
                 }
                 is Result.Loading -> ResetPasswordUiState.Loading
             }
+            _resetPasswordUiState.postValue(uiState)
         }
 
     }

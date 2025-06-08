@@ -17,7 +17,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".features.user.ui.SetupProfileActivity"
+            android:name=".features.user.ui.setup_frofile.SetupProfileActivity"
             android:exported="false" />
         <activity
             android:name=".features.admin.ui.AdminDashBoardActivity"

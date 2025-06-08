@@ -1,18 +1,20 @@
 package vn.edu.stu.tranthanhsang.healthy_app.features.auth.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import vn.edu.stu.tranthanhsang.healthy_app.data.local.prefs.UserPreferenceRepository
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.ForgotPasswordUseCase
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.VerifyEmailUseCase
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.VerifyOtpUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.ForgotPasswordUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.VerifyEmailUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.VerifyOtpUseCase
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.SendOtpUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.VerifyOtpUiState
@@ -31,7 +33,7 @@ class VerifyOTPViewModel @Inject constructor(
 
     var password: String = ""
 
-    val isForgotPassword: MutableLiveData<Boolean> = MutableLiveData(false)
+    var isForgotPassword: MutableLiveData<Boolean> = MutableLiveData(false)
 
     private val _authStatus = MutableLiveData<VerifyOtpUiState>()
     val authState: LiveData<VerifyOtpUiState> = _authStatus
@@ -40,7 +42,7 @@ class VerifyOTPViewModel @Inject constructor(
     val sendOtpState: LiveData<SendOtpUiState> = _sendOtpStatus
 
     // Private MutableLiveData to store OTP digits as a list
-    private var _otpDigits = MutableLiveData<MutableList<String>>(MutableList(6){""})
+    private var _otpDigits = MutableLiveData(MutableList(6){""})
     val otpDigits: MutableLiveData<MutableList<String>> get() = _otpDigits
 
     // MediatorLiveData để theo dõi trạng thái hoàn thành của OTP
@@ -54,16 +56,9 @@ class VerifyOTPViewModel @Inject constructor(
             checkOtpCompletion(it)
         }
         checkOtpCompletion(_otpDigits.value)
-
-        if (!isForgotPassword.value!!){
-            val email = runBlocking {
-                userPreferenceRepository.email.first()
-            }
-            emailSend = MutableLiveData(email)
-        }
     }
 
-    fun setPassword(password: String){
+    fun updatePassword(password: String){
         this.password = password
     }
 
@@ -76,37 +71,45 @@ class VerifyOTPViewModel @Inject constructor(
         _isOtpComplete.value = complete
     }
 
+    private fun getEmailDatastore():String{
+        if (!isForgotPassword.value!!){
+            val email = runBlocking {
+                userPreferenceRepository.email.first()
+            }
+            Log.d("DATASTORE_EMAIL", email.toString())
+            emailSend.value= email
+        }
+        Log.d("EMAIL_RETURN", emailSend.value.toString())
+        return emailSend.value?:""
+    }
+
     fun verifyOTP() {
         val otp = getFullOtp()
-        val email = emailSend.value ?: ""
+        val email = getEmailDatastore()
+        Log.d("email", email)
         _authStatus.value = VerifyOtpUiState.Initial
-        viewModelScope.launch {
-            _authStatus.value = VerifyOtpUiState.Loading
+        viewModelScope.launch (Dispatchers.IO){
+            _authStatus.postValue(VerifyOtpUiState.Loading)
             if (!isForgotPassword.value!!){
-                when (val result = verifyEmailUseCase(email, otp)){
+                val uiState = when (val result = verifyEmailUseCase(email, otp)){
                     is Result.Success -> {
-                        if(!isForgotPassword.value!!){
-                            _navigateToLogin.value = Pair(email, password)
-                        }
-                        _authStatus.value = VerifyOtpUiState.Success(result.data.message)
+                            if(!isForgotPassword.value!!){
+                                _navigateToLogin.postValue(Pair(email, password))
+                            }
+                            VerifyOtpUiState.Success(result.data.message)
                     }
-                    is Result.Error -> {
-                        _authStatus.value = VerifyOtpUiState.Error(result.message)
-                    }
+                    is Result.Error -> VerifyOtpUiState.Error(result.message)
                     Result.Loading -> VerifyOtpUiState.Loading
                 }
+                _authStatus.postValue(uiState)
             }else {
-                    when(val result = verifyOtpUseCase(email, otp)){
-                        is Result.Success -> {
-                            _authStatus.value = VerifyOtpUiState.Success(result.data.message)
-                        }
-                        is Result.Error -> {
-                            _authStatus.value = VerifyOtpUiState.Error(result.message)
-                        }
+                    val uiState = when(val result = verifyOtpUseCase(email, otp)){
+                        is Result.Success -> VerifyOtpUiState.Success(result.data.message)
+                        is Result.Error -> VerifyOtpUiState.Error(result.message)
                         is Result.Loading -> VerifyOtpUiState.Loading
                     }
+                _authStatus.postValue(uiState)
             }
-
         }
     }
 

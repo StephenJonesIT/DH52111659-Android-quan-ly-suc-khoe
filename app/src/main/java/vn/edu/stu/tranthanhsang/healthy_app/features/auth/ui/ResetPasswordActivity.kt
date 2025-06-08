@@ -86,7 +86,7 @@ class ResetPasswordActivity : AppCompatActivity() {
 
                 is ResetPasswordUiState.Error -> {
                     stopLoading()
-                    state.message?.let { ToastUtils.showToast(this, it) }
+                    state.message?.let { ToastUtils.showToast(this, state.message) }
                     viewModel.resetState()
                 }
             }

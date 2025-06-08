@@ -5,11 +5,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import vn.edu.stu.tranthanhsang.healthy_app.domain.models.LoginError
 import vn.edu.stu.tranthanhsang.healthy_app.domain.models.RegisterError
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.LoginUseCase
-import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.RegisterUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.LoginUseCase
+import vn.edu.stu.tranthanhsang.healthy_app.domain.usecase.auth.RegisterUseCase
 import vn.edu.stu.tranthanhsang.healthy_app.domain.utils.Result
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.LoginUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.RegisterUiState
@@ -42,57 +43,49 @@ class AuthViewModel @Inject constructor(
 
     fun login(username: String, password: String) {
         _authStatus.value = LoginUiState.Loading
-        viewModelScope.launch {
-            when(val result = loginUseCase(username, password)){
+        viewModelScope.launch(Dispatchers.IO) {
+            val uiState = when(val result = loginUseCase(username, password)){
                 is Result.Success -> {
-                    roleUser.value = result.data.role
-                    _authStatus.value = LoginUiState.Success(result.data)
+                        roleUser.postValue(result.data.role)
+                        LoginUiState.Success(result.data)
                 }
                 is Result.Error -> {
-                    when(val error = result.exception){
-                        is LoginError.InvalidEmail -> _usernameError.value = error.message
-                        is LoginError.WeakPassword -> _passwordError.value = error.message
-                        is LoginError.EmptyFieldsEmail -> _usernameError.value = error.message
-                        is LoginError.EmptyFieldsPassword -> _passwordError.value = error.message
-                        is LoginError.ServerError -> _generalError.value = error.message
-                        else -> _generalError.value = "Đăng nhập thất bại. Vui lòng thử lại."
-                    }
-                    _authStatus.value = LoginUiState.Error(result.message)
+                        when(val error = result.exception){
+                            is LoginError.InvalidEmail -> _usernameError.postValue(error.message)
+                            is LoginError.WeakPassword -> _passwordError.postValue(error.message)
+                            is LoginError.EmptyFieldsEmail -> _usernameError.postValue(error.message)
+                            is LoginError.EmptyFieldsPassword -> _passwordError.postValue(error.message)
+                            is LoginError.ServerError -> _generalError.postValue(error.message)
+                        }
+                    LoginUiState.Error(result.message)
                 }
-                Result.Loading -> {
-                    _authStatus.value = LoginUiState.Loading
-                }
-
-                else -> {}
+                is Result.Loading -> LoginUiState.Loading
             }
+            _authStatus.postValue(uiState)
         }
     }
 
     fun register(email: String, password: String, rePassword: String) {
         _registerStatus.value = RegisterUiState.Loading
-        viewModelScope.launch {
-            when(val result = registerUseCase(email, password, rePassword)){
-                is Result.Success -> {
-                    _registerStatus.value = RegisterUiState.Success(result.data)
-                }
+        viewModelScope.launch(Dispatchers.IO) {
+            val uiState = when(val result = registerUseCase(email, password, rePassword)) {
+                is Result.Success -> RegisterUiState.Success(result.data)
                 is Result.Error -> {
-                    when(val error = result.exception) {
-                        is RegisterError.InvalidEmail -> _usernameError.value = error.message
-                        is RegisterError.WeakPassword -> _passwordError.value = error.message
-                        is RegisterError.EmptyFieldsEmail -> _usernameError.value = error.message
-                        is RegisterError.EmptyFieldsPassword -> _passwordError.value = error.message
-                        is RegisterError.PasswordNotMatch -> _confirmPasswordError.value = error.message
-                        is RegisterError.ServerError -> _generalError.value = error.message
+                    when (val error = result.exception) {
+                        is RegisterError.InvalidEmail -> _usernameError.postValue(error.message)
+                        is RegisterError.WeakPassword -> _passwordError.postValue(error.message)
+                        is RegisterError.EmptyFieldsEmail -> _usernameError.postValue(error.message)
+                        is RegisterError.EmptyFieldsPassword -> _passwordError.postValue(error.message)
+                        is RegisterError.PasswordNotMatch -> _confirmPasswordError.postValue(error.message)
+                        is RegisterError.ServerError -> _generalError.postValue(error.message)
                         else -> _generalError.value = "Đăng ký thất bại. Vui lòng thử lại."
                     }
-                    _registerStatus.value = RegisterUiState.Error(result.message)
-                    }
-                  Result.Loading -> {
-                      _registerStatus.value = RegisterUiState.Loading
-                  }
+                    RegisterUiState.Error(result.message)
+                }
 
-                else -> {}
+                Result.Loading -> RegisterUiState.Loading
             }
+            _registerStatus.postValue(uiState)
         }
     }
     fun resetLoginState() {

@@ -86,16 +86,13 @@ class LoginFragment : Fragment() {
                 is LoginUiState.Success<*> -> {
                     stopLoading()
                     authViewModel.resetLoginState()
-                    Log.d("LOGIN", "observeData: ${state.data}")
                     authViewModel.roleUser.value?.let { navigateToDashboard(it, requireContext(), requireActivity()) }
                 }
                 is LoginUiState.Error -> {
                     stopLoading()
-                    state.message?.let { ToastUtils.showToast(requireContext(), it) }
+                    state.message?.let { ToastUtils.showToast(requireContext(), state.message) }
                     authViewModel.resetLoginState()
                 }
-
-                else -> {}
             }
         }
     }
@@ -106,7 +103,7 @@ class LoginFragment : Fragment() {
     }
 
     private fun navigateToDashboard(role: String, context:Context, activity:Activity) {
-        ToastUtils.showToast(context, "Đăng nhập thành công")
+        ToastUtils.showToast(context, "Login success")
         val intent = when(role){
             "admin"-> Intent(requireContext(), AdminDashBoardActivity::class.java)
             "expert" -> Intent(requireContext(), ExpertDashboardActivity::class.java)
@@ -122,7 +119,6 @@ class LoginFragment : Fragment() {
     }
 
     private fun isLoading(){
-        binding.darkOverlay.show()
         binding.progressBar.show()
         binding.btnLogin.disable()
         binding.edtUsername.disable()
@@ -132,7 +128,6 @@ class LoginFragment : Fragment() {
     private fun stopLoading(){
         binding.progressBar.hide()
         binding.btnLogin.enable()
-        binding.darkOverlay.hide()
         binding.edtUsername.enable()
         binding.edtPassword.enable()
     }

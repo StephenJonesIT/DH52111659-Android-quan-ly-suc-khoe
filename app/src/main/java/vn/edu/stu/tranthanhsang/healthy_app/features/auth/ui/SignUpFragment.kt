@@ -11,6 +11,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import vn.edu.stu.tranthanhsang.healthy_app.databinding.FragmentSignUpBinding
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.uistate.RegisterUiState
 import vn.edu.stu.tranthanhsang.healthy_app.features.auth.viewmodels.AuthViewModel
+import vn.edu.stu.tranthanhsang.healthy_app.features.user.ui.setup_frofile.SetupProfileActivity
 import vn.edu.stu.tranthanhsang.healthy_app.utils.Constants
 import vn.edu.stu.tranthanhsang.healthy_app.utils.ToastUtils
 import vn.edu.stu.tranthanhsang.healthy_app.utils.applyTransition
@@ -28,7 +29,7 @@ class SignUpFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentSignUpBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -45,11 +46,12 @@ class SignUpFragment : Fragment() {
         }
 
         binding.btnSignup.setOnClickListener {
-            val username = binding.edtUsername.editText?.text.toString()
-            val password = binding.edtPassword.editText?.text.toString()
-            val confirmPassword = binding.edtConfirmPassword.editText?.text.toString()
-            authViewModel.resetErrors()
-            authViewModel.register(username, password, confirmPassword)
+//            val username = binding.edtUsername.editText?.text.toString()
+//            val password = binding.edtPassword.editText?.text.toString()
+//            val confirmPassword = binding.edtConfirmPassword.editText?.text.toString()
+//            authViewModel.resetErrors()
+//            authViewModel.register(username, password, confirmPassword)
+            startActivity(Intent(requireActivity(), SetupProfileActivity::class.java))
         }
     }
 
@@ -77,12 +79,12 @@ class SignUpFragment : Fragment() {
                 is RegisterUiState.Success<*> -> {
                     stopLoading()
                     authViewModel.resetRegisterState()
-                    ToastUtils.showToast(requireContext(), "Đăng ký thành công")
+                    ToastUtils.showToast(requireContext(), state.data.toString())
                     navigateToVerifyEmail()
                 }
                 is RegisterUiState.Error -> {
                     stopLoading()
-                    state.message?.let { ToastUtils.showToast(requireContext(), it) }
+                    state.message?.let { ToastUtils.showToast(requireContext(), state.message) }
                     authViewModel.resetRegisterState()
                 }
             }
@@ -96,21 +98,20 @@ class SignUpFragment : Fragment() {
     }
 
     private fun navigateToVerifyEmail(){
+        val password = binding.edtPassword.editText?.text.toString()
         val intent = Intent(requireContext(), VerifyOTPActivity::class.java)
-        intent.putExtra(Constants.PASSWORD, binding.edtPassword.editText?.text)
+        intent.putExtra(Constants.PASSWORD, password)
         startActivity(intent)
         requireActivity().applyTransition()
     }
 
     private fun isLoading(){
         binding.progressBar.show()
-        binding.darkOverlay.show()
         binding.btnSignup.disable()
     }
 
     private fun stopLoading(){
         binding.progressBar.hide()
-        binding.darkOverlay.hide()
         binding.btnSignup.enable()
     }
 }

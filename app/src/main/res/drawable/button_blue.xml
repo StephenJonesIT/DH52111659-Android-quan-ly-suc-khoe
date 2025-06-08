@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <shape>
+            <solid android:color="@color/light_grey"/>
+            <padding android:left="16dp" android:top="16dp" android:right="16dp" android:bottom="16dp"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item><!-- Khi nút bị disable -->
+    <item android:state_enabled="true">
+        <shape>
+            <solid android:color="@color/blue_second"/>
+            <corners android:radius="16dp"/>
+            <padding android:left="16dp" android:top="16dp" android:right="16dp" android:bottom="16dp"/>
+        </shape>
+    </item>
+</selector>
